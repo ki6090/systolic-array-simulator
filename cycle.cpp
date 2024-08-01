@@ -49,9 +49,7 @@ static int divide_weight_matrix(vector<tuple<int, int, int>> *matrix, config *co
             matrix->push_back(make_tuple(left_row, left_col, k));
     }
 
-    for(auto& i: *matrix) {
-        std::cout << std::get<0>(i) << " " << std::get<1>(i) << " " << std::get<2>(i) << '\n';
-    }
+
 
 }
 
@@ -64,6 +62,14 @@ int compute_cycles_gemm_ws(config* config) {
 
     vector<tuple<int, int, int>> matrix;
     divide_weight_matrix(&matrix, config);
+    int cnt = 1;
+    for (auto& i: matrix) {
+        cout << "Computation"<< cnt << ": ";
+        cout << "(" << get<0>(i) << "x" << get<1>(i) << ")x(" << get<1>(i) << "x" << get<2>(i) << ")\n";
+        ++cnt;
+    }
+
+
     int cycle = 0;
 
     return 0;

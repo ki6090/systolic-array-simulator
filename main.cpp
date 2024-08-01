@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
     cout << "Data Flow: " << dataflow;
     cout << "GEMM Size: " << "(" << c.mnk.m << "x" << c.mnk.n << ")" << "x" << "(" << c.mnk.n << "x" << c.mnk.k << ")\n";
     cout << "Config Path: " << "./" << argv[1] << '\n';
-    cout << "===================================\n";
+    cout << "============COMPUTATION============\n";
     int compute_cycles = 0;
     
     switch (c.dataflow)
@@ -47,6 +47,6 @@ int main(int argc, char **argv) {
     default:
         break;
     }
-    
+    cout << "===================================\n";
     return 0;
 }
