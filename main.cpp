@@ -33,8 +33,20 @@ int main(int argc, char **argv) {
     cout << "GEMM Size: " << "(" << c.mnk.m << "x" << c.mnk.n << ")" << "x" << "(" << c.mnk.n << "x" << c.mnk.k << ")\n";
     cout << "Config Path: " << "./" << argv[1] << '\n';
     cout << "===================================\n";
-
-
-    int compute_cycles = compute_cycles_gemm_ws(&c);
+    int compute_cycles = 0;
+    
+    switch (c.dataflow)
+    {
+    case WS:
+        compute_cycles = compute_cycles_gemm_ws(&c);
+        break;
+    case OS:
+        break;
+    case IS:
+        break;
+    default:
+        break;
+    }
+    
     return 0;
 }

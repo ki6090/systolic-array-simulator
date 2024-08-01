@@ -5,7 +5,7 @@
 
 using namespace std;
 
-int divide_weight_matrix(vector<tuple<int, int, int>> *matrix, config *config) {
+static int divide_weight_matrix(vector<tuple<int, int, int>> *matrix, config *config) {
     int col = config->mnk.n;
     int row = config->mnk.m;
     int k = config->mnk.k;
