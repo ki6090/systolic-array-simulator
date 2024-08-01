@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
     cout << "============MY-GEMM-SIM============\n";
     cout << "Array Size: " << c.array_h << "x" << c.array_w << '\n';
     cout << "Data Flow: " << dataflow;
-    cout << "GEMM Size: " << "(" << c.mnk.m << "x" << c.mnk.n << ")" << "x" << "(" << c.mnk.n << "x" << c.mnk.k << ")\n";
+    cout << "GEMM Size: " << "[" << c.mnk.m << "x" << c.mnk.n << "]" << "x" << "[" << c.mnk.n << "x" << c.mnk.k << "]\n";
     cout << "Config Path: " << "./" << argv[1] << '\n';
     cout << "============COMPUTATIONS===========\n";
     int compute_cycles = 0;

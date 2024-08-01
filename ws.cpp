@@ -62,20 +62,19 @@ int compute_cycles_gemm_ws(config* config) {
     int cnt = 1;
     for (auto& i: computations) {
         cout << "Computation"<< cnt++ << ": ";
-        cout << "(" << get<0>(i) << "x" << get<1>(i) << ")x(" << get<1>(i) << "x" << get<2>(i) << ")\n";
+        cout << "[" << get<0>(i) << "x" << get<1>(i) << "]x[" << get<1>(i) << "x" << get<2>(i) << "]\n";
     }
     cout << "============CYCLE-COUNT============\n";
-    int cycle = 0;
+    int cycle = 1;
     cnt = 1;
     for (auto& i: computations) {
-        ++cycle;
         cout << " -----------COMPUTATION" << cnt++ << "---------- " << '\n';
         cout << "Arrays Fill Cycles: " << config->array_h;
         cout << "(" << cycle << "~" << (cycle + config->array_h - 1) << ")\n";
         cycle += config->array_h;
         int ifmap_cycle = ((get<2>(i) - 1) + (get<1>(i) - 1) + (get<0>(i) - 1));
         cout << "IFMap Cycles: " << ifmap_cycle;
-        cout << "(" << cycle << "~" << (cycle + ifmap_cycle) << ")\n";
+        cout << "(" << cycle << "~" << (cycle + ifmap_cycle - 1) << ")\n";
         cycle += ifmap_cycle;
     }
     return 0;
