@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <cstddef>
 #include <vector>
-#include </home/shboo/my-scale-sim/config.h>
+#include "config.h"
 
 using namespace std;
 

@@ -1,4 +1,4 @@
-#include </home/shboo/my-scale-sim/cycle.h>
+#include "cycle.h"
 #include <tuple>
 #include <vector>
 #include <iostream>

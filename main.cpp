@@ -4,7 +4,7 @@
 #include <string>
 #include <stdio.h>
 #include <cstddef>
-#include </home/shboo/my-scale-sim/cycle.h>
+#include "cycle.h"
 
 using namespace std;
 
@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
     cout << "Config Path: " << "./" << argv[1] << '\n';
     cout << "===================================\n";
 
-    
+
     int compute_cycles = compute_cycles_gemm_ws(&c);
     return 0;
 }
