@@ -32,7 +32,7 @@ static int get_config(vector<string>* vp, char *target) {
     return -1;
 }
 
-void read_config_file_gemm(config* config, char *path) {
+void read_gemm_config(config* config, char *path) {
     ifstream file(path);
     if (!file.is_open()) {
         return;

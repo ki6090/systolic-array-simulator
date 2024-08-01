@@ -15,4 +15,4 @@ typedef struct _config {
     gemm mnk;
 } config;
 
-void read_config_file_gemm(config* config, char *path);
+void read_gemm_config(config* config, char *path);

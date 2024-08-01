@@ -4,7 +4,7 @@
 #include <string>
 #include <stdio.h>
 #include <cstddef>
-#include "cycle.h"
+#include "ws.h"
 
 using namespace std;
 
@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
         return 0;
     }
     config c;
-    read_config_file_gemm(&c, argv[1]);
+    read_gemm_config(&c, argv[1]);
     string dataflow;
     if (c.dataflow == WS)
         dataflow = "Weight Stationary\n";
@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
     cout << "Data Flow: " << dataflow;
     cout << "GEMM Size: " << "(" << c.mnk.m << "x" << c.mnk.n << ")" << "x" << "(" << c.mnk.n << "x" << c.mnk.k << ")\n";
     cout << "Config Path: " << "./" << argv[1] << '\n';
-    cout << "============COMPUTATION============\n";
+    cout << "============COMPUTATIONS===========\n";
     int compute_cycles = 0;
     
     switch (c.dataflow)
