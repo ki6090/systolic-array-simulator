@@ -26,6 +26,7 @@ int main(int argc, char **argv) {
     result.activation_cycles = 0;
     result.weight_fill_cycles = 0;
     result.total_cycles = 0;
+    result.stall_cycles = 0;
     result.computations.empty();
 
     int mode = 0;
@@ -34,6 +35,8 @@ int main(int argc, char **argv) {
     if (!token.compare("-gemm")) {
         mode = GEMM;
     }
+
+    read_arch_config(&config, argv[1]);
 
     switch (mode)
     {
@@ -50,6 +53,7 @@ int main(int argc, char **argv) {
     if (error == -1)
         return 0;
     
+    cout << "============MY-SCALE-SIM===========\n";
     string dataflow;
     if (config.dataflow == WS)
         dataflow = "Weight Stationary\n";
@@ -57,12 +61,17 @@ int main(int argc, char **argv) {
         dataflow = "Output Stationary\n";
     else if (config.dataflow == IS)
         dataflow = "Input Stationary\n";
-    
-    cout << "============MY-SCALE-SIM===========\n";
+
     cout << "Array Size: " << config.array_h << "x" << config.array_w << '\n';
     cout << "Data Flow: " << dataflow;
     cout << "GEMM Size: " << "[" << config.mnk.m << "x" << config.mnk.n << "]" << "x" << "[" << config.mnk.n << "x" << config.mnk.k << "]\n";
+    cout << "IFMAP SRAM Size: " << config.ifmap_sram_size << '\n';
+    cout << "OFMAP SRAM Size: " << config.ofmap_sram_size << '\n';
+    cout << "Filter SRAM Size: " << config.filter_sram_size << '\n';
+    cout << "Off-Chip Memory Cycles: " << config.off_chip_memory_cycles << '\n';
     cout << "Config Path: " << "./" << argv[1] << '\n';
+
+
     cout << "============COMPUTATIONS===========\n";
     int compute_cycles = 0;
     float util;

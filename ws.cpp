@@ -92,15 +92,24 @@ int compute_cycles_gemm_ws(config* config, result *result) {
     }
     cout << "============CYCLE-COUNT============\n";
     int cycles = 1;
+    
     cnt = 1;
     for (auto& i: *computations) {
         cout << " -----------COMPUTATION" << cnt++ << "---------- " << '\n';
-        cout << "Weight Filling Cycles: " << config->array_h;
-        result->weight_fill_cycles += config->array_h;
-        cout << "(" << cycles << "~" << (cycles + config->array_h - 1) << ")\n";
-        cycles += config->array_h;
+        /* Weight Filling Simulation. */
+        int weight_cycles = config->array_h;
+        for (int c = 1; c <= weight_cycles; c++) {
+
+        }
+        cout << "Weight Filling Cycles: " << weight_cycles;
+        result->weight_fill_cycles += weight_cycles;
+        cout << "(" << cycles << "~" << (cycles + weight_cycles - 1) << ")\n";
+        cycles += weight_cycles;
         
         int ifmap_cycles = get<2>(i) + (get<1>(i) - 1) + get<0>(i);
+        for (int c = 1; c <= ifmap_cycles; c++) {
+
+        }
         cout << "Activation Cycles: " << ifmap_cycles;
         result->activation_cycles += ifmap_cycles;
         cout << "(" << cycles << "~" << (cycles + ifmap_cycles - 1) << ")\n";

@@ -32,6 +32,55 @@ static int get_config(vector<string>* vp, char *target) {
     return -1;
 }
 
+int read_arch_config (config* config, char *path) {
+    ifstream file;
+    file.open(path);
+    if (!file.is_open()) {
+        cout << "No such file or directory.\n";
+        return -1;
+    }
+
+    string line;
+    vector<string> v_arch;
+    bool b_arch = false;
+    while (getline(file, line)) {
+        string trimmed_line = trim(line);
+        if (b_arch && trimmed_line == "[end]")
+            break;
+        if (trimmed_line == "[architecture_presets]") {
+            b_arch = true;
+        }
+        if (b_arch && trimmed_line != "[architecture_presets]") {
+            v_arch.push_back(line);
+        }
+    }
+
+    int a_h = get_config(&v_arch, (char*)"ArrayHeight");
+    int a_w = get_config(&v_arch, (char*)"ArrayWidth");
+    int dataflow = get_config(&v_arch, (char*)"Dataflow");
+    int ifmap_sram_size = get_config(&v_arch, (char*)"IfmapSRAMSize");
+    int ofmap_sram_size = get_config(&v_arch, (char*)"OfmapSRAMSize");
+    int filter_sram_size = get_config(&v_arch, (char*)"FilterSRAMSize");
+    int off_chip_memory_cycles = get_config(&v_arch, (char*)"OffChipMemoryCycles");
+
+    if (a_h < 0 || a_w < 0 || dataflow < 0 || ifmap_sram_size < 0 || ofmap_sram_size < 0 || filter_sram_size < 0) {
+        cout << "configuration not found or wrong input.\n";
+        return -1;
+    }
+
+    config->array_h = a_h;
+    config->array_w = a_w;
+    config->dataflow = dataflow;
+    config->ifmap_sram_size = ifmap_sram_size;
+    config->ofmap_sram_size = ofmap_sram_size;
+    config->filter_sram_size = filter_sram_size;
+    config->off_chip_memory_cycles = off_chip_memory_cycles;
+
+    file.close();
+
+    return 0;
+}
+
 int read_gemm_config(config* config, char *path) {
     ifstream file;
     file.open(path);
@@ -43,37 +92,18 @@ int read_gemm_config(config* config, char *path) {
     string line;
     vector<string> v_arch;
     vector<string> v_gemm;
-    bool b_arch = false;
     bool b_gemm = false;
     while (getline(file, line)) {
         string trimmed_line = trim(line);
-        if (trimmed_line == "[architecture_presets]") {
-            b_arch = true; b_gemm = false;
+        if (b_gemm && trimmed_line == "[end]")
+            break;
+        if (trimmed_line == "[gemm_mnk]") {
+            b_gemm = true;
         }
-        else if (trimmed_line == "[gemm_mnk]") {
-            b_arch = false; b_gemm = true;
-        }
-
-        if (b_arch && trimmed_line != "[architecture_presets]") {
-            v_arch.push_back(line);
-        }
-        else if (b_gemm && trimmed_line != "[gemm_mnk]") {
+        if (b_gemm && trimmed_line != "[gemm_mnk]") {
             v_gemm.push_back(line);
         }
     }
-
-    int a_h = get_config(&v_arch, (char*)"ArrayHeight");
-    int a_w = get_config(&v_arch, (char*)"ArrayWidth");
-    int dataflow = get_config(&v_arch, (char*)"Dataflow");
-
-    if (a_h < 0 || a_w < 0 || dataflow < 0) {
-        cout << "configuration not found or wrong input.\n";
-        return -1;
-    }
-
-    config->array_h = a_h;
-    config->array_w = a_w;
-    config->dataflow = dataflow;
 
     int m = get_config(&v_gemm, (char*)"MSize");
     int n = get_config(&v_gemm, (char*)"NSize");
