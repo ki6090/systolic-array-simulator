@@ -40,14 +40,14 @@ int main(int argc, char **argv) {
     cout << "Config Path: " << "./" << argv[1] << '\n';
     cout << "============COMPUTATIONS===========\n";
     int compute_cycles = 0;
-    int utilization = 0;
+    float util = 0.0;
     
     switch (config.dataflow)
     {
     case WS:
     {
         compute_cycles = compute_cycles_gemm_ws(&config, &result);
-        utilization = compute_util_gemm_ws(&config, &result);
+        util = compute_util_gemm_ws(&config, &result);
     }
         break;
     case OS:
