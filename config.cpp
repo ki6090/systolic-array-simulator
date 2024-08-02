@@ -32,10 +32,12 @@ static int get_config(vector<string>* vp, char *target) {
     return -1;
 }
 
-void read_gemm_config(config* config, char *path) {
-    ifstream file(path);
+int read_gemm_config(config* config, char *path) {
+    ifstream file;
+    file.open(path);
     if (!file.is_open()) {
-        return;
+        cout << "No such file or directory.\n";
+        return -1;
     }
 
     string line;
@@ -64,8 +66,10 @@ void read_gemm_config(config* config, char *path) {
     int a_w = get_config(&v_arch, (char*)"ArrayWidth");
     int dataflow = get_config(&v_arch, (char*)"Dataflow");
 
-    if (a_h < 0 || a_w < 0 || dataflow < 0)
+    if (a_h < 0 || a_w < 0 || dataflow < 0) {
         cout << "configuration not found or wrong input.\n";
+        return -1;
+    }
 
     config->array_h = a_h;
     config->array_w = a_w;
@@ -75,12 +79,16 @@ void read_gemm_config(config* config, char *path) {
     int n = get_config(&v_gemm, (char*)"NSize");
     int k = get_config(&v_gemm, (char*)"KSize");
     
-    if (m < 0 || n < 0 || k < 0)
+    if (m < 0 || n < 0 || k < 0) {
         cout << "configuration not found or wrong input.\n";
+        return -1;
+    }
 
     config->mnk.m = m;
     config->mnk.n = n;
     config->mnk.k = k;
 
     file.close();
+
+    return 0;
 }

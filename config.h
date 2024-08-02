@@ -24,4 +24,4 @@ typedef struct _config {
     gemm mnk;
 } config;
 
-void read_gemm_config(config* config, char *path);
+int read_gemm_config(config* config, char *path);

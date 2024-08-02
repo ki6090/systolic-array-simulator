@@ -5,7 +5,7 @@
 
 using namespace std;
 
-static int divide_ws(vector<tuple<int, int, int>> *computations, config *config) {
+static void divide_ws(vector<tuple<int, int, int>> *computations, config *config) {
     int col = config->mnk.n;
     int row = config->mnk.m;
     int k = config->mnk.k;
@@ -48,6 +48,7 @@ static int divide_ws(vector<tuple<int, int, int>> *computations, config *config)
         if (left_col)
             computations->push_back(make_tuple(left_row, left_col, k));
     }
+    return;
 }
 
 
@@ -82,12 +83,6 @@ float compute_util_gemm_ws(config *config, result* result) {
 
 
 int compute_cycles_gemm_ws(config* config, result *result) {
-    int m = config->mnk.m;
-    int n = config->mnk.n;
-    int k = config->mnk.k;
-    int a_w = config->array_w;
-    int a_h = config->array_h;
-
     vector<tuple<int, int, int>> *computations = &result->computations;
     divide_ws(computations, config);
     int cnt = 1;

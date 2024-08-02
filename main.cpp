@@ -24,7 +24,10 @@ int main(int argc, char **argv) {
     result.total_cycles = 0;
     result.computations.empty();
 
-    read_gemm_config(&config, argv[1]);
+    int error = read_gemm_config(&config, argv[1]);
+    if (error == -1)
+        return 0;
+    
     string dataflow;
     if (config.dataflow == WS)
         dataflow = "Weight Stationary\n";
@@ -40,7 +43,7 @@ int main(int argc, char **argv) {
     cout << "Config Path: " << "./" << argv[1] << '\n';
     cout << "============COMPUTATIONS===========\n";
     int compute_cycles = 0;
-    float util = 0.0;
+    float util;
     
     switch (config.dataflow)
     {
