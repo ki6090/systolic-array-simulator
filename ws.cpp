@@ -50,32 +50,54 @@ static int divide_ws(vector<tuple<int, int, int>> *computations, config *config)
     }
 }
 
-int compute_cycles_gemm_ws(config* config) {
+
+/* ((Total #of working MACs)/(#MACs)) / (Total Cycles)*/
+int compute_util_gemm_ws(config *config, result* result) {
+    int total_cycles = result->total_cycles;
+    cout << "============UTILIZATION============\n";
+
+    int acc = 0;
+
+    return 0;
+}
+
+
+int compute_cycles_gemm_ws(config* config, result *result) {
     int m = config->mnk.m;
     int n = config->mnk.n;
     int k = config->mnk.k;
     int a_w = config->array_w;
     int a_h = config->array_h;
 
-    vector<tuple<int, int, int>> computations;
-    divide_ws(&computations, config);
+    vector<tuple<int, int, int>> *computations = &result->computations;
+    divide_ws(computations, config);
     int cnt = 1;
-    for (auto& i: computations) {
+    for (auto& i: *computations) {
         cout << "Computation"<< cnt++ << ": ";
         cout << "[" << get<0>(i) << "x" << get<1>(i) << "]x[" << get<1>(i) << "x" << get<2>(i) << "]\n";
     }
     cout << "============CYCLE-COUNT============\n";
-    int cycle = 1;
+    int cycles = 1;
     cnt = 1;
-    for (auto& i: computations) {
+    for (auto& i: *computations) {
         cout << " -----------COMPUTATION" << cnt++ << "---------- " << '\n';
-        cout << "Arrays Fill Cycles: " << config->array_h;
-        cout << "(" << cycle << "~" << (cycle + config->array_h - 1) << ")\n";
-        cycle += config->array_h;
-        int ifmap_cycle = ((get<2>(i) - 1) + (get<1>(i) - 1) + (get<0>(i) - 1));
-        cout << "IFMap Cycles: " << ifmap_cycle;
-        cout << "(" << cycle << "~" << (cycle + ifmap_cycle - 1) << ")\n";
-        cycle += ifmap_cycle;
+        cout << "Weight Filling Cycles: " << config->array_h;
+        result->weight_fill_cycles += config->array_h;
+        cout << "(" << cycles << "~" << (cycles + config->array_h - 1) << ")\n";
+        cycles += config->array_h;
+        
+        int ifmap_cycles = ((get<2>(i) - 1) + (get<1>(i) - 1) + (get<0>(i) - 1));
+        cout << "Activation Cycles: " << ifmap_cycles;
+        result->activation_cycles += ifmap_cycles;
+        cout << "(" << cycles << "~" << (cycles + ifmap_cycles - 1) << ")\n";
+        cycles += ifmap_cycles;
     }
-    return 0;
+    result->total_cycles = cycles - 1;
+
+    cout << " -------------RESULTS" << "------------- " << '\n';
+    cout << "Total Weight Filling Cycles: " << result->weight_fill_cycles << '\n';
+    cout << "Total Activation Cycles: " << result->activation_cycles << '\n';
+    cout << "Computation Cycles: " << result->total_cycles << '\n';
+
+    return cycles - 1;
 }
