@@ -53,20 +53,31 @@ static int divide_ws(vector<tuple<int, int, int>> *computations, config *config)
 
 /* ((Total #of working MACs)/(#MACs)) / (Total Cycles)*/
 float compute_util_gemm_ws(config *config, result* result) {
-    int total_cycles = result->total_cycles;
     cout << "============UTILIZATION============\n";
+    float total_cycles = (float)result->total_cycles;
+    float total_macs = (float)config->array_h * config->array_w;
+    int col_macs = config->array_w;
+    int col_acts;
+    int active_macs = 0;
 
-    int acc = 0;
-    int col = config->array_w;
+    float acc = 0.0;
     int add_acc = 0;
-    float util = 0.0;
+    float util;
     for (auto& i: result->computations) {
         add_acc = get<1>(i);
-        for (int c = 0; c < get<2>(i) + get<1>(i); c++) {
-
+        col_acts = get<2>(i);
+        for (int c = 1; c <= get<2>(i) + get<0>(i); c++) {
+            if (c <= col_macs && c <= col_acts) 
+                active_macs += add_acc;
+            else if (c >= col_macs && c > col_acts) 
+                active_macs -= add_acc;
+            acc += (float)active_macs;
         }
+        
     }
-    return 0.0;
+    util = ((acc / total_macs) / (total_cycles)) * 100;
+    cout << "Overall Utilization: " << util << "%\n";
+    return util;
 }
 
 
