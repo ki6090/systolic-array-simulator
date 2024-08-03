@@ -3,6 +3,8 @@
 #include <vector>
 #include <iostream>
 #include <assert.h>
+#include <numeric>
+#include <deque>
 using namespace std;
 
 static void divide_ws(vector<tuple<int, int, int>> *computations, config *config) {
@@ -88,41 +90,71 @@ float compute_util_gemm_ws(config *config, result* result) {
 
 
 int compute_cycles_gemm_ws(config* config, result *result) {
-    vector<tuple<int, int, int>> *computations = &result->computations;
+    vector<tuple<int, int, int>> *computations = &result->computations; 
     divide_ws(computations, config);
     int cnt = 1;
+    int ofmap_sram_size = config->ofmap_sram_size;
+    int filter_sram_size = config->filter_sram_size;
+    int ifmap_sram_size = config->ifmap_sram_size;
+    int off_chip_memory_cycles = config->off_chip_memory_cycles;
+    
+    deque<int> weight_v;
+    deque<int> ifmap_v;
+    int weight_sum = 0;
+    int ifmap_sum = 0;
+    /* Pre-Filling to SRAM. */
     for (auto& i: *computations) {
         cout << "Computation"<< cnt++ << ": ";
         cout << "[" << get<0>(i) << "x" << get<1>(i) << "]x[" << get<1>(i) << "x" << get<2>(i) << "]\n";
+        if (weight_sum < filter_sram_size) {
+            int weights = get<0>(i) * get<1>(i);
+            int put = weights < (filter_sram_size - weight_sum) ? weights : (filter_sram_size - weight_sum);
+            weight_v.push_back(put);
+        }
+        else {
+            weight_v.push_back(0);
+        }
+        if (ifmap_sum < ifmap_sram_size) {
+            int ifmaps = get<1>(i) * get<2>(i);
+            int put = ifmaps < (ifmap_sram_size - ifmap_sum) ? ifmaps : (ifmap_sram_size - ifmap_sum);
+            ifmap_v.push_back(put);
+        }
+        else {
+            ifmap_v.push_back(0);
+        }
+        weight_sum = accumulate(weight_v.begin(), weight_v.end(), 0);
+        ifmap_sum = accumulate(ifmap_v.begin(), ifmap_v.end(), 0);
     }
+
     cout << "============CYCLE-COUNT============\n";
     int cycles = 1;
     int stall_cycles = 0;
     cnt = 1;
+
     for (auto& i: *computations) {
         cout << " -----------COMPUTATION" << cnt++ << "---------- " << '\n';
         /* Filter Initialize. */
         vector<tuple<int, int, bool>> stalls;
         stalls.empty();
-        int total_weights = get<0>(i) * get<1>(i);
-        int left_weights = total_weights;
-        int on_chip_weights = 0;
-        int filter_sram_size = config->filter_sram_size;
-        int off_chip_memory_cycles = config->off_chip_memory_cycles;
-        int start_cycles = cycles;
-        on_chip_weights = filter_sram_size <= left_weights ? filter_sram_size : left_weights;
+        int m = get<0>(i);
+        int n = get<1>(i);
+        int k = get<2>(i);
 
-        stalls.push_back(make_tuple(cycles, cycles + off_chip_memory_cycles - 1, false));
-        cycles += off_chip_memory_cycles;
-        left_weights -= on_chip_weights;
+        int weights = m * n;
+        int left_weights = weights;
+        int on_chip_weights = 0;
+        int start_cycles = cycles;
+        on_chip_weights = weight_v.front();
+        weight_v.pop_front();
 
         /* Weights Filling Simulation. */
         int acc = 0;
-        int add_acc = get<0>(i);
+        int add_acc = m;
         int weight_cycles = config->array_h;
         
         for (int c = 1; c <= weight_cycles; c++) {
-            if (acc < total_weights) {
+            if (acc < weights) {
+                left_weights -= add_acc;
                 on_chip_weights -= add_acc;
                 acc += add_acc;
             }
@@ -131,7 +163,6 @@ int compute_cycles_gemm_ws(config* config, result *result) {
                 on_chip_weights += add_acc;
                 left_weights += on_chip_weights;
                 on_chip_weights = filter_sram_size <= left_weights ? filter_sram_size : left_weights;
-                left_weights -= on_chip_weights;
 
                 /* Stall Cycles. */
                 stall_cycles += off_chip_memory_cycles;
@@ -141,44 +172,44 @@ int compute_cycles_gemm_ws(config* config, result *result) {
             cycles++;   
         }
         /* Weights Finish. */
-        assert(acc == total_weights);
+        assert(acc == weights);
         cout << "Weight Filling Cycles: " << weight_cycles;
         result->weight_fill_cycles += weight_cycles;
         cout << "(" << start_cycles << "~" << (cycles - 1) << ")\n";
         for (auto& s: stalls) {
-            cout << "*Stall Cycles(Filter): " << off_chip_memory_cycles;
+            cout << " *Stall Cycles(Filter): " << off_chip_memory_cycles;
             cout << "(" << get<0>(s) << "~" << get<1>(s) << ")\n";
         }
         stalls.clear();
 
         /* Ifmap Initialize. */
-        total_weights = get<1>(i) * get<2>(i);
-        left_weights = total_weights;
+        weights = n * k;
+        left_weights = weights;
         on_chip_weights = 0;
-        int ifmap_sram_size = config->ifmap_sram_size;
-        on_chip_weights = ifmap_sram_size <= left_weights ? ifmap_sram_size : left_weights;
-        stalls.push_back(make_tuple(cycles, cycles + off_chip_memory_cycles - 1, false));
-        cycles += off_chip_memory_cycles;
-        left_weights -= on_chip_weights;
+        
+        on_chip_weights = ifmap_v.front();
+        ifmap_v.pop_front();
 
         /* Ofmap Initialize. */
-        int ofmap_sram_size = config->ofmap_sram_size;
         int ofmap_weights = 0;
+        int ofmap_acc = 0;
+
         /* Activation Simulation. */
         acc = 0;
         add_acc = 0;
-        int ifmap_cycles = config->array_h + (config->array_w - 1) + get<2>(i);
+        int ifmap_cycles = config->array_h + (config->array_w - 1) + k;
         start_cycles = cycles;
         for (int c = 1; c <= ifmap_cycles; c++) {
             /* add_acc Updates. */
-            if (c <= get<1>(i)) {
+            if (c <= n) {
                 add_acc += 1;
             }
-            if (c > get<2>(i) && add_acc > 0) {
+            if (c > k && add_acc > 0) {
                 add_acc -= 1;
             }
 
-            if (acc < total_weights) {
+            if (acc < weights) {
+                left_weights -= add_acc;
                 on_chip_weights -= add_acc;
                 acc += add_acc;
             }
@@ -194,10 +225,11 @@ int compute_cycles_gemm_ws(config* config, result *result) {
                 cycles += off_chip_memory_cycles;
             }
             /* Results Goes to Ofmap every get<1>(i) cycles. */
-            if (c > ifmap_cycles - get<2>(i)) {
-                ofmap_weights += get<0>(i);
+            if (c > ifmap_cycles - k) {
+                ofmap_weights += m;
+                ofmap_acc += m;
                 if (ofmap_weights > ofmap_sram_size) {
-                    ofmap_weights = get<0>(i);
+                    ofmap_weights = m;
                     /* Stall Cycles. */
                     stall_cycles += off_chip_memory_cycles;
                     stalls.push_back(make_tuple(cycles, cycles + off_chip_memory_cycles - 1, true));
@@ -206,25 +238,19 @@ int compute_cycles_gemm_ws(config* config, result *result) {
             }
             cycles++;
         }
-        assert(acc == total_weights);
-        
-        /* Sends results to off-chip memory. */
-        if (ofmap_weights > 0) {
-            stall_cycles += off_chip_memory_cycles;
-            stalls.push_back(make_tuple(cycles, cycles + off_chip_memory_cycles - 1, true));
-            cycles += off_chip_memory_cycles;
-        }
-            
+        assert(acc == weights);
+        assert(ofmap_acc == m * k);
+
         cout << "Activation Cycles: " << ifmap_cycles;
         result->activation_cycles += ifmap_cycles;
         cout << "(" << start_cycles << "~" << (cycles - 1) << ")\n";    
         for (auto& s: stalls) {
             if (!get<2>(s)) {
-                cout << "*Stall Cycles(Ifmap): " << off_chip_memory_cycles;
+                cout << " *Stall Cycles(Ifmap): " << off_chip_memory_cycles;
                 cout << "(" << get<0>(s) << "~" << get<1>(s) << ")\n";
             }
             else {
-                cout << "*Stall Cycles(Ofmap): " << off_chip_memory_cycles;
+                cout << " *Stall Cycles(Ofmap): " << off_chip_memory_cycles;
                 cout << "(" << get<0>(s) << "~" << get<1>(s) << ")\n";
             }
             
