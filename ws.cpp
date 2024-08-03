@@ -102,6 +102,8 @@ int compute_cycles_gemm_ws(config* config, result *result) {
     deque<int> ifmap_v;
     int weight_sum = 0;
     int ifmap_sum = 0;
+    int ofmap_weights = 0;
+    
     /* Pre-Filling to SRAM. */
     for (auto& i: *computations) {
         cout << "Computation"<< cnt++ << ": ";
@@ -151,7 +153,6 @@ int compute_cycles_gemm_ws(config* config, result *result) {
         int acc = 0;
         int add_acc = m;
         int weight_cycles = config->array_h;
-        
         for (int c = 1; c <= weight_cycles; c++) {
             if (acc < weights) {
                 left_weights -= add_acc;
@@ -191,8 +192,17 @@ int compute_cycles_gemm_ws(config* config, result *result) {
         ifmap_v.pop_front();
 
         /* Ofmap Initialize. */
-        int ofmap_weights = 0;
         int ofmap_acc = 0;
+        
+        /* Move Results to Off-Chip if exists. */
+        if (ofmap_weights > 0) {
+            /* Stall Cycles. */
+            stall_cycles += off_chip_memory_cycles;
+            cout << "Stall Cycles(Ofmap): " << off_chip_memory_cycles;
+            cout << "(" << cycles << "~" << cycles + off_chip_memory_cycles - 1 << ")\n";
+            cycles += off_chip_memory_cycles;  
+            ofmap_weights = 0;
+        }
 
         /* Activation Simulation. */
         acc = 0;
