@@ -63,7 +63,7 @@ int read_arch_config (config* config, char *path) {
     int filter_sram_size = get_config(&v_arch, (char*)"FilterSRAMSize");
     int off_chip_memory_cycles = get_config(&v_arch, (char*)"OffChipMemoryCycles");
 
-    if (a_h < 0 || a_w < 0 || dataflow < 0 || ifmap_sram_size < 0 || ofmap_sram_size < 0 || filter_sram_size < 0) {
+    if (a_h < 0 || a_w < 0 || dataflow < 0 || ifmap_sram_size < 0 || ofmap_sram_size < 0 || filter_sram_size < 0 || off_chip_memory_cycles < 0) {
         cout << "configuration not found or wrong input.\n";
         return -1;
     }

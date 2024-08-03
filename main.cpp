@@ -74,9 +74,6 @@ int main(int argc, char **argv) {
 
 
     cout << "============COMPUTATIONS===========\n";
-    int compute_cycles = 0;
-    float util;
-    
     switch (config.dataflow)
     {
     case WS:
@@ -84,8 +81,8 @@ int main(int argc, char **argv) {
         switch (mode)
         {
         case GEMM:
-            compute_cycles = compute_cycles_gemm_ws(&config, &result);
-            util = compute_util_gemm_ws(&config, &result);
+            compute_cycles_gemm_ws(&config, &result);
+            compute_util_gemm_ws(&config, &result);
             break;
         default:
             break;
