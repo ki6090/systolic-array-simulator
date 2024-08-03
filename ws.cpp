@@ -61,7 +61,7 @@ static void divide_ws(vector<tuple<int, int, int>> *computations, config *config
 
 /* ((Total #workingMACs) / (#MACs)) / (Total Cycles) */
 float compute_util_gemm_ws(config *config, result* result) {
-    cout << "============UTILIZATION============\n";
+    cout << '\n' << "============UTILIZATION=============\n";
     float total_cycles = (float)result->total_cycles;
     float total_macs = (float)config->array_h * config->array_w;
     int col_macs = config->array_w;
@@ -128,13 +128,13 @@ int compute_cycles_gemm_ws(config* config, result *result) {
         ifmap_sum = accumulate(ifmap_v.begin(), ifmap_v.end(), 0);
     }
 
-    cout << "============CYCLE-COUNT============\n";
+    cout << '\n' << "============CYCLE-COUNT=============\n";
     int cycles = 1;
     int stall_cycles = 0;
     cnt = 1;
 
     for (auto& i: *computations) {
-        cout << " -----------COMPUTATION" << cnt++ << "---------- " << '\n';
+        cout << "------------COMPUTATION" << cnt++ << "------------" << '\n';
         /* Filter Initialize. */
         vector<tuple<int, int, bool>> stalls;
         stalls.empty();
@@ -174,12 +174,14 @@ int compute_cycles_gemm_ws(config* config, result *result) {
         }
         /* Weights Finish. */
         assert(acc == weights);
-        cout << "Weight Filling Cycles: " << weight_cycles;
+        cout << "Weight Filling: ";
         result->weight_fill_cycles += weight_cycles;
-        cout << "(" << start_cycles << "~" << (cycles - 1) << ")\n";
-        for (auto& s: stalls) {
-            cout << " *Stall Cycles(Filter): " << off_chip_memory_cycles;
-            cout << "(" << get<0>(s) << "~" << get<1>(s) << ")\n";
+        cout << start_cycles << "~" << (cycles - 1) << "(" << weight_cycles << "cycles)\n";
+        if (off_chip_memory_cycles) {
+            for (auto& s: stalls) {
+                cout << " *Stalls(Filter): ";
+                cout << get<0>(s) << "~" << get<1>(s) << "(" << off_chip_memory_cycles << "cycles)\n";
+            }
         }
         stalls.clear();
 
@@ -195,11 +197,11 @@ int compute_cycles_gemm_ws(config* config, result *result) {
         int ofmap_acc = 0;
         
         /* Move Results to Off-Chip if exists. */
-        if (ofmap_weights > 0) {
+        if (ofmap_weights > 0 && off_chip_memory_cycles) {
             /* Stall Cycles. */
             stall_cycles += off_chip_memory_cycles;
-            cout << "Stall Cycles(Ofmap): " << off_chip_memory_cycles;
-            cout << "(" << cycles << "~" << cycles + off_chip_memory_cycles - 1 << ")\n";
+            cout << "Stalls(Ofmap): ";
+            cout << cycles << "~" << cycles + off_chip_memory_cycles - 1 << "(" << off_chip_memory_cycles << "cycles)\n";
             cycles += off_chip_memory_cycles;  
             ofmap_weights = 0;
         }
@@ -251,26 +253,27 @@ int compute_cycles_gemm_ws(config* config, result *result) {
         assert(acc == weights);
         assert(ofmap_acc == m * k);
 
-        cout << "Activation Cycles: " << ifmap_cycles;
+        cout << "Activations: ";
         result->activation_cycles += ifmap_cycles;
-        cout << "(" << start_cycles << "~" << (cycles - 1) << ")\n";    
-        for (auto& s: stalls) {
-            if (!get<2>(s)) {
-                cout << " *Stall Cycles(Ifmap): " << off_chip_memory_cycles;
-                cout << "(" << get<0>(s) << "~" << get<1>(s) << ")\n";
+        cout << start_cycles << "~" << (cycles - 1) << "(" << ifmap_cycles << "cycles)\n";
+        if (off_chip_memory_cycles) {
+            for (auto& s: stalls) {
+                if (!get<2>(s)) {
+                    cout << " *Stalls(Ifmap): ";
+                    cout << get<0>(s) << "~" << get<1>(s) << "(" << off_chip_memory_cycles << "cycles)\n";
+                }
+                else if (get<2>(s)){
+                    cout << " *Stalls(Ofmap): ";
+                    cout << get<0>(s) << "~" << get<1>(s) << "(" << off_chip_memory_cycles << "cycles)\n";
+                }       
             }
-            else {
-                cout << " *Stall Cycles(Ofmap): " << off_chip_memory_cycles;
-                cout << "(" << get<0>(s) << "~" << get<1>(s) << ")\n";
-            }
-            
         }
         stalls.clear();
     }
     result->total_cycles = cycles - 1;
     result->stall_cycles = stall_cycles;
 
-    cout << " -------------RESULTS" << "------------- " << '\n';
+    cout << "--------------RESULTS" << "---------------" << '\n';
     cout << "Total Weight Filling Cycles: " << result->weight_fill_cycles << '\n';
     cout << "Total Activation Cycles: " << result->activation_cycles << '\n';
     cout << "Total Stall Cycles: " << result->stall_cycles << '\n';

@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
     error = read_arch_config(&config, argv[1]);
     if (error == -1) return 0;
     
-    cout << "============MY-SCALE-SIM===========\n";
+    cout << "============MY-SCALE-SIM============\n";
     string dataflow;
     if (config.dataflow == WS)
         dataflow = "Weight Stationary\n";
@@ -71,8 +71,7 @@ int main(int argc, char **argv) {
     cout << "Off-Chip Memory Cycles: " << config.off_chip_memory_cycles << '\n';
     cout << "Config Path: " << "./" << argv[1] << '\n';
 
-
-    cout << "============COMPUTATIONS===========\n";
+    cout << '\n' << "============COMPUTATIONS============\n";
     switch (config.dataflow)
     {
     case WS:
