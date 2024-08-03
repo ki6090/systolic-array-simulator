@@ -2,7 +2,7 @@
 #include <tuple>
 #include <vector>
 #include <iostream>
-
+#include <assert.h>
 using namespace std;
 
 static void divide_ws(vector<tuple<int, int, int>> *computations, config *config) {
@@ -92,20 +92,53 @@ int compute_cycles_gemm_ws(config* config, result *result) {
     }
     cout << "============CYCLE-COUNT============\n";
     int cycles = 1;
-    
+    int stall_cycles = 0;
     cnt = 1;
     for (auto& i: *computations) {
         cout << " -----------COMPUTATION" << cnt++ << "---------- " << '\n';
-        /* Weight Filling Simulation. */
+        /* #Weights Calculation. */
+        int total_weights = config->array_h * config->array_w;
+        int left_weights = total_weights;
+        int on_chip_weights = 0;
+        int filter_sram_size = config->filter_sram_size;
+        on_chip_weights = filter_sram_size <= left_weights ? filter_sram_size : left_weights;
+        left_weights -= on_chip_weights;
+        /* Weights Filling Simulation. */
+        int acc = 0;
+        int add_acc = get<0>(i);
         int weight_cycles = config->array_h;
+        int stall_cycles = 0;
+        int off_chip_memory_cycles = config->off_chip_memory_cycles;
+        int start_cycles = cycles;
         for (int c = 1; c <= weight_cycles; c++) {
+            on_chip_weights -= add_acc;
+            if (on_chip_weights < 0) {
+                /* Updates. */
+                on_chip_weights += add_acc;
+                left_weights += on_chip_weights;
+                on_chip_weights = filter_sram_size <= left_weights ? filter_sram_size : left_weights;
+                left_weights -= on_chip_weights;
 
+                /* Stall Cycles. */
+                stall_cycles += off_chip_memory_cycles;
+                cout << "Stall Cycles: " << off_chip_memory_cycles;
+                cout << "(" << cycles << "~" << (cycles + off_chip_memory_cycles - 1) << ")\n";
+                cycles += off_chip_memory_cycles;
+            }
+            acc += add_acc;
+            cycles++;   
         }
+        /* Weights Finish. */
+        assert(acc == total_weights);
         cout << "Weight Filling Cycles: " << weight_cycles;
         result->weight_fill_cycles += weight_cycles;
-        cout << "(" << cycles << "~" << (cycles + weight_cycles - 1) << ")\n";
-        cycles += weight_cycles;
+        cout << "(" << start_cycles << "~" << (cycles - 1) << ")\n";
+
         
+
+        total_weights = get<1>(i) * get<2>(i);
+
+
         int ifmap_cycles = get<2>(i) + (get<1>(i) - 1) + get<0>(i);
         for (int c = 1; c <= ifmap_cycles; c++) {
 
@@ -114,12 +147,16 @@ int compute_cycles_gemm_ws(config* config, result *result) {
         result->activation_cycles += ifmap_cycles;
         cout << "(" << cycles << "~" << (cycles + ifmap_cycles - 1) << ")\n";
         cycles += ifmap_cycles;
+
+        /* Stalls Update. */
+        result->stall_cycles = stall_cycles;
     }
     result->total_cycles = cycles - 1;
 
     cout << " -------------RESULTS" << "------------- " << '\n';
     cout << "Total Weight Filling Cycles: " << result->weight_fill_cycles << '\n';
     cout << "Total Activation Cycles: " << result->activation_cycles << '\n';
+    cout << "Total Stall Cycles: " << result->stall_cycles << '\n';
     cout << "Computation Cycles: " << result->total_cycles << '\n';
 
     return cycles - 1;

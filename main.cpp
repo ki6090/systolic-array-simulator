@@ -12,8 +12,9 @@
 using namespace std;
 
 int main(int argc, char **argv) {
-    if (argc <= 1) {
-        std::cout << "Usage: >" << argv[0] << " [file_name].config\n";
+    if (argc <= 2) {
+        cout << "Usage: > " << argv[0] << " [file_name].config " << "[MODE]" <<'\n';
+        cout << "MODE: [-gemm]\n";
         return 0;
     }
     else if (argc > 3) {
@@ -36,8 +37,6 @@ int main(int argc, char **argv) {
         mode = GEMM;
     }
 
-    read_arch_config(&config, argv[1]);
-
     switch (mode)
     {
     case GEMM:
@@ -49,7 +48,9 @@ int main(int argc, char **argv) {
         cout << "Please set the mode.\n";
         return 0;
     }
-    
+
+    read_arch_config(&config, argv[1]);
+
     if (error == -1)
         return 0;
     
