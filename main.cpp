@@ -42,6 +42,7 @@ int main(int argc, char **argv) {
     case GEMM:
     {
         error = read_gemm_config(&config, argv[1]);
+        if (error == -1) return 0;
         break;
     }    
     default:
@@ -49,10 +50,8 @@ int main(int argc, char **argv) {
         return 0;
     }
 
-    read_arch_config(&config, argv[1]);
-
-    if (error == -1)
-        return 0;
+    error = read_arch_config(&config, argv[1]);
+    if (error == -1) return 0;
     
     cout << "============MY-SCALE-SIM===========\n";
     string dataflow;
