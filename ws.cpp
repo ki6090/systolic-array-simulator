@@ -89,30 +89,32 @@ float compute_util_gemm_ws(config *config, result* result) {
 static void simulate_prefill_gemm_ws(config *config, vector<tuple<int, int, int>> *computations, deque<int> *weight_vp, deque<int> *ifmap_vp) {
     int cnt = 1;
     int weight_sum = 0;
-    int ifmap_sum = 0;
     int filter_sram_size = config->filter_sram_size;
     int ifmap_sram_size = config->ifmap_sram_size;
     for (auto& i: *computations) {
         cout << "Computation"<< cnt++ << ": ";
         cout << "[" << get<0>(i) << "x" << get<1>(i) << "]x[" << get<1>(i) << "x" << get<2>(i) << "]\n";
+        int weights = get<0>(i) * get<1>(i);
+        int ifmaps = get<1>(i) * get<2>(i);
+        /* Filter. */
         if (weight_sum < filter_sram_size) {
-            int weights = get<0>(i) * get<1>(i);
             int put = weights < (filter_sram_size - weight_sum) ? weights : (filter_sram_size - weight_sum);
             weight_vp->push_back(put);
         }
         else {
             weight_vp->push_back(0);
         }
-        if (ifmap_sum < ifmap_sram_size) {
-            int ifmaps = get<1>(i) * get<2>(i);
-            int put = ifmaps < (ifmap_sram_size - ifmap_sum) ? ifmaps : (ifmap_sram_size - ifmap_sum);
-            ifmap_vp->push_back(put);
+        /* Ifmap. */
+        if (ifmaps <= ifmap_sram_size) {
+            ifmap_vp->push_back(ifmaps);
         }
-        else {
+        else if (ifmaps > ifmap_sram_size && ifmap_vp->empty()){
+            ifmap_vp->push_back(ifmap_sram_size);
+        }
+        else if (ifmaps > ifmap_sram_size && !ifmap_vp->empty()) {
             ifmap_vp->push_back(0);
         }
         weight_sum = accumulate(weight_vp->begin(), weight_vp->end(), 0);
-        ifmap_sum = accumulate(ifmap_vp->begin(), ifmap_vp->end(), 0);
     }
 
     return;
@@ -145,19 +147,23 @@ static void simulate_filling_weights_gemm_ws(config *config, result *result, tup
         }
         if (on_chip_weights < 0) {
             /* Stall Updates. */
-            on_chip_weights += add_acc;
-            left_weights += on_chip_weights;
+            left_weights += add_acc;
             on_chip_weights = filter_sram_size <= left_weights ? filter_sram_size : left_weights;
 
             /* Stall Cycles. */
             stall_cycles += off_chip_memory_cycles;
             stalls.push_back(make_tuple(cycles, cycles + off_chip_memory_cycles - 1));
             cycles += off_chip_memory_cycles;
+
+            /* Updates. */
+            left_weights -= add_acc;
+            on_chip_weights -= add_acc;
         }
         cycles++;   
     }
-
     /* Weights Finish. */
+    assert(on_chip_weights == 0);
+    assert(left_weights == 0);
     assert(acc == weights);
 
     cout << "Weight Filling: ";
@@ -194,7 +200,7 @@ static void simulate_activation_gemm_ws(config *config, result *result, tuple<in
 
     on_chip_weights = ifmap_vp->front();
     ifmap_vp->pop_front();
-    
+
     /* Ofmap Initialize. */
     int ofmap_acc = 0;
     
@@ -223,7 +229,6 @@ static void simulate_activation_gemm_ws(config *config, result *result, tuple<in
         if (c > k && add_acc > 0) {
             add_acc -= 1;
         }
-
         if (acc < weights) {
             left_weights -= add_acc;
             on_chip_weights -= add_acc;
@@ -231,14 +236,17 @@ static void simulate_activation_gemm_ws(config *config, result *result, tuple<in
         }
         if (on_chip_weights < 0) {
             /* Stall Updates. */
-            on_chip_weights += add_acc;
-            left_weights += on_chip_weights;
+            left_weights += add_acc;
             on_chip_weights = ifmap_sram_size <= left_weights ? ifmap_sram_size : left_weights;
 
             /* Stall Cycles. */
             stall_cycles += off_chip_memory_cycles;
             stalls.push_back(make_tuple(cycles, cycles + off_chip_memory_cycles - 1, false));
             cycles += off_chip_memory_cycles;
+
+            /* Updates. */
+            left_weights -= add_acc;
+            on_chip_weights -= add_acc;
         }
         /* Results Goes to Ofmap every get<1>(i) cycles. */
         if (c > ifmap_cycles - k) {
@@ -254,6 +262,8 @@ static void simulate_activation_gemm_ws(config *config, result *result, tuple<in
         }
         cycles++;
     }
+    assert(left_weights == 0);
+    assert(on_chip_weights == 0);
     assert(acc == weights);
     assert(ofmap_acc == m * k);
 
