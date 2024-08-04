@@ -94,6 +94,6 @@ int main(int argc, char **argv) {
     default:
         break;
     }
-    cout << "===================================\n";
+    cout << "====================================\n";
     return 0;
 }
