@@ -1,3 +1,5 @@
+#ifndef CONFIG_H
+#define CONFIG_H
 #include <vector>
 #include <tuple>
 #define WS 1
@@ -27,7 +29,9 @@ typedef struct _config {
     int ofmap_sram_size;
     int filter_sram_size;
     int off_chip_memory_cycles;
+    char *path;
 } config;
 
 int read_arch_config(config* config, char *path);
 int read_gemm_config(config* config, char *path);
+#endif

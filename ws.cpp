@@ -1,10 +1,13 @@
-#include "ws.h"
 #include <tuple>
 #include <vector>
 #include <iostream>
 #include <assert.h>
 #include <numeric>
 #include <deque>
+#include "include/print.h"
+#include "include/config.h"
+#include "include/ws.h"
+
 using namespace std;
 
 static void divide_gemm_ws(config* config, vector<tuple<int, int, int>> *computations) {
@@ -202,7 +205,9 @@ static void simulate_activation_gemm_ws(config *config, result *result, tuple<in
         cout << "Stalls(Ofmap): ";
         cout << cycles << "~" << cycles + off_chip_memory_cycles - 1 << "(" << off_chip_memory_cycles << "cycles)\n";
         cycles += off_chip_memory_cycles;  
+        /* Initialize Ofmap Weights. */
         *ofmap_weights_p = 0;
+        ofmap_weights = 0;
     }
 
     /* Activation Simulation. */
@@ -274,7 +279,6 @@ static void simulate_activation_gemm_ws(config *config, result *result, tuple<in
 }
 
 int compute_cycles_gemm_ws(config* config, result *result) {
-    cout << '\n' << "============CYCLE-COUNT=============\n";
     int cycles = 1;
     int stall_cycles = 0;
     int ofmap_weights = 0;
@@ -289,6 +293,7 @@ int compute_cycles_gemm_ws(config* config, result *result) {
     /* Pre-Filling to SRAM. Stalls are not calculated. */
     simulate_prefill_gemm_ws(config, computations, &weight_v, &ifmap_v);
 
+    cout << '\n' << "============CYCLE-COUNT=============\n";
     for (auto& i: *computations) {
         cout << "------------COMPUTATION" << cnt++ << "------------" << '\n';
         /* Weights Filling Simulation. */
@@ -300,11 +305,7 @@ int compute_cycles_gemm_ws(config* config, result *result) {
     result->total_cycles = cycles - 1;
     result->stall_cycles = stall_cycles;
 
-    cout << "--------------RESULTS" << "---------------" << '\n';
-    cout << "Total Weight Filling Cycles: " << result->weight_fill_cycles << '\n';
-    cout << "Total Activation Cycles: " << result->activation_cycles << '\n';
-    cout << "Total Stall Cycles: " << result->stall_cycles << '\n';
-    cout << "Computation Cycles: " << result->total_cycles << '\n';
-
+    print_results_gemm_ws(result);
+    
     return cycles - 1;
 }

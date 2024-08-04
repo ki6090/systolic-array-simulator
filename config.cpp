@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <cstddef>
 #include <vector>
-#include "config.h"
+#include "include/config.h"
 
 using namespace std;
 
@@ -75,6 +75,7 @@ int read_arch_config (config* config, char *path) {
     config->ofmap_sram_size = ofmap_sram_size;
     config->filter_sram_size = filter_sram_size;
     config->off_chip_memory_cycles = off_chip_memory_cycles;
+    config->path = path;
 
     file.close();
 

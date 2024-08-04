@@ -4,7 +4,9 @@
 #include <string>
 #include <stdio.h>
 #include <cstddef>
-#include "ws.h"
+#include "include/config.h"
+#include "include/print.h"
+#include "include/ws.h"
 
 /* Mode */
 #define GEMM 1
@@ -53,23 +55,7 @@ int main(int argc, char **argv) {
     error = read_arch_config(&config, argv[1]);
     if (error == -1) return 0;
     
-    cout << "============MY-SCALE-SIM============\n";
-    string dataflow;
-    if (config.dataflow == WS)
-        dataflow = "Weight Stationary\n";
-    else if (config.dataflow == OS)
-        dataflow = "Output Stationary\n";
-    else if (config.dataflow == IS)
-        dataflow = "Input Stationary\n";
-
-    cout << "Array Size: " << config.array_h << "x" << config.array_w << '\n';
-    cout << "Data Flow: " << dataflow;
-    cout << "GEMM Size: " << "[" << config.mnk.m << "x" << config.mnk.n << "]" << "x" << "[" << config.mnk.n << "x" << config.mnk.k << "]\n";
-    cout << "IFMAP SRAM Size: " << config.ifmap_sram_size << '\n';
-    cout << "OFMAP SRAM Size: " << config.ofmap_sram_size << '\n';
-    cout << "Filter SRAM Size: " << config.filter_sram_size << '\n';
-    cout << "Off-Chip Memory Cycles: " << config.off_chip_memory_cycles << '\n';
-    cout << "Config Path: " << "./" << argv[1] << '\n';
+    print_scale_sim_infos(&config);
 
     cout << '\n' << "============COMPUTATIONS============\n";
     switch (config.dataflow)
@@ -97,3 +83,4 @@ int main(int argc, char **argv) {
     cout << "====================================\n";
     return 0;
 }
+
