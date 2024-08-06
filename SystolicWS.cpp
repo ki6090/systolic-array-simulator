@@ -129,7 +129,6 @@ float SystolicWS::compute_utils(SimulationConfigs *configs, SimulationResults* r
 }
 
 void SystolicWS::prefill_weights(SimulationConfigs *configs, vector<tuple<int, int, int>> *computations, deque<int> *weight_vp, deque<int> *ifmap_vp) {
-    int cnt = 1;
     int weight_sum = 0;
     int filter_sram_size = configs->filter_sram_size;
     int ifmap_sram_size = configs->ifmap_sram_size;
