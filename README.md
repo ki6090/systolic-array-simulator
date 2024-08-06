@@ -20,7 +20,7 @@ make sim
 ```
 
 ```
-./sim test1.config
+./sim configs/test1.config
 ```
 ### Write a Config File
 This is the example configuration file to run the simulator. You have to close with the ```[end]``` bracket. This simulator can only simulate GEMM (general matrix multiplication) with Weight Stationary(WS). Another calcualtion method will be added in future. 
