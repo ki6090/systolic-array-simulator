@@ -17,7 +17,9 @@ git clone https://github.com/ki6090/systolic-array-simulator.git
 To run the real simulator, you have to complie with corresponding command in root repository folder. 
 ```
 make sim
+```
 
+```
 ./sim test1.config
 ```
 ### Write a Config File
