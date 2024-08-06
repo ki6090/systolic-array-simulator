@@ -13,7 +13,7 @@ void print_results_gemm_ws(result *result) {
 }
 
 void print_scale_sim_infos(config *config) {
-    cout << "============MY-SCALE-SIM============\n";
+    cout << "=========SYSTOLIC-ARRAY-SIM=========\n";
     string dataflow;
     if (config->dataflow == WS)
         dataflow = "Weight Stationary\n";
