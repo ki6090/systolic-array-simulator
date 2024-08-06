@@ -185,7 +185,7 @@ static void simulate_activation_gemm_ws(config *config, result *result, tuple<in
     ifmap_vp->pop_front();
 
     int ofmap_acc = 0;
-    if (ofmap_weights > 0 && off_chip_memory_cycles) {
+    if (ofmap_weights > ofmap_sram_size && off_chip_memory_cycles) {
         stall_cycles += off_chip_memory_cycles;
         cout << "Stalls(Ofmap): ";
         cout << cycles << "~" << cycles + off_chip_memory_cycles - 1 << "(" << off_chip_memory_cycles << "cycles)\n";
