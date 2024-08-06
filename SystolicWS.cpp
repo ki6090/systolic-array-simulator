@@ -1,21 +1,26 @@
-#include <tuple>
-#include <vector>
 #include <iostream>
 #include <assert.h>
 #include <numeric>
 #include <deque>
-#include "include/print.h"
-#include "include/config.h"
-#include "include/ws.h"
+#include "SystolicWS.h"
 
 using namespace std;
 
-static void divide_gemm_ws(config* config, vector<tuple<int, int, int>> *computations) {
-    int col = config->mnk.n;
-    int row = config->mnk.m;
-    int k = config->mnk.k;
-    int a_w = config->array_w;
-    int a_h = config->array_h;
+void SystolicWS::print_results(SimulationResults *results) {
+    cout << "--------------RESULTS" << "---------------" << '\n';
+    cout << "Total Weight Filling Cycles: " << results->weight_fill_cycles << '\n';
+    cout << "Total Activation Cycles: " << results->activation_cycles << '\n';
+    cout << "Total Stall Cycles: " << results->stall_cycles << '\n';
+    cout << "Computation Cycles: " << results->total_cycles << '\n';
+    return;
+}
+
+void SystolicWS::divide_weights(SimulationConfigs* configs, vector<tuple<int, int, int>> *computations) {
+    int col = configs->mnk.n;
+    int row = configs->mnk.m;
+    int k = configs->mnk.k;
+    int a_w = configs->array_w;
+    int a_h = configs->array_h;
     int window_x;      
     int left_col = col;
     int left_row = row;
@@ -48,18 +53,18 @@ static void divide_gemm_ws(config* config, vector<tuple<int, int, int>> *computa
 }
 
 /* ((Total #workingMACs) / (#MACs)) / (Total Cycles) */
-float compute_util_gemm_ws(config *config, result* result) {
+float SystolicWS::compute_utils(SimulationConfigs *configs, SimulationResults* results) {
     cout << '\n' << "============UTILIZATION=============\n";
-    float total_cycles = (float)result->total_cycles;
-    float total_macs = (float)config->array_h * config->array_w;
-    int col_macs = config->array_w;
+    float total_cycles = (float)results->total_cycles;
+    float total_macs = (float)configs->array_h * configs->array_w;
+    int col_macs = configs->array_w;
     int col_acts;
     int active_macs = 0;
 
     float acc = 0.0;
     int add_acc = 0;
     float util;
-    for (auto& i: result->computations) {
+    for (auto& i: results->computations) {
         add_acc = get<1>(i);
         col_acts = get<2>(i);
         for (int c = 1; c <= get<2>(i) + get<0>(i); c++) {
@@ -76,11 +81,11 @@ float compute_util_gemm_ws(config *config, result* result) {
     return util;
 }
 
-static void simulate_prefill_gemm_ws(config *config, vector<tuple<int, int, int>> *computations, deque<int> *weight_vp, deque<int> *ifmap_vp) {
+void SystolicWS::prefill_weights(SimulationConfigs *configs, vector<tuple<int, int, int>> *computations, deque<int> *weight_vp, deque<int> *ifmap_vp) {
     int cnt = 1;
     int weight_sum = 0;
-    int filter_sram_size = config->filter_sram_size;
-    int ifmap_sram_size = config->ifmap_sram_size;
+    int filter_sram_size = configs->filter_sram_size;
+    int ifmap_sram_size = configs->ifmap_sram_size;
     for (auto& i: *computations) {
         cout << "Computation"<< cnt++ << ": ";
         cout << "[" << get<0>(i) << "x" << get<1>(i) << "]x[" << get<1>(i) << "x" << get<2>(i) << "]\n";
@@ -90,26 +95,22 @@ static void simulate_prefill_gemm_ws(config *config, vector<tuple<int, int, int>
             int put = weights < (filter_sram_size - weight_sum) ? weights : (filter_sram_size - weight_sum);
             weight_vp->push_back(put);
         }
-        else {
-            weight_vp->push_back(0);
-        }
+        else weight_vp->push_back(0);
 
-        if (ifmaps <= ifmap_sram_size) {
+        if (ifmaps <= ifmap_sram_size) 
             ifmap_vp->push_back(ifmaps);
-        }
-        else if (ifmaps > ifmap_sram_size && ifmap_vp->empty()){
+        else if (ifmaps > ifmap_sram_size && ifmap_vp->empty())
             ifmap_vp->push_back(ifmap_sram_size);
-        }
-        else if (ifmaps > ifmap_sram_size && !ifmap_vp->empty()) {
+        else if (ifmaps > ifmap_sram_size && !ifmap_vp->empty()) 
             ifmap_vp->push_back(0);
-        }
+
         weight_sum = accumulate(weight_vp->begin(), weight_vp->end(), 0);
     }
 
     return;
 }
 
-static void simulate_filling_weights_gemm_ws(config *config, result *result, tuple<int, int, int> i, deque<int> *weight_vp, int *cycles_p, int *stall_cycles_p) {
+void SystolicWS::fill_weights(SimulationConfigs *configs, SimulationResults *results, tuple<int, int, int> i, deque<int> *weight_vp, int *cycles_p, int *stall_cycles_p) {
     vector<tuple<int, int>> stalls;
     int m = get<0>(i);
     int n = get<1>(i);
@@ -118,8 +119,8 @@ static void simulate_filling_weights_gemm_ws(config *config, result *result, tup
     int on_chip_weights = 0;
     int start_cycles = *cycles_p;
     int stall_cycles = *stall_cycles_p;
-    int filter_sram_size = config->filter_sram_size;
-    int off_chip_memory_cycles = config->off_chip_memory_cycles;
+    int filter_sram_size = configs->filter_sram_size;
+    int off_chip_memory_cycles = configs->off_chip_memory_cycles;
     int cycles = *cycles_p;
 
     on_chip_weights = weight_vp->front();
@@ -127,7 +128,7 @@ static void simulate_filling_weights_gemm_ws(config *config, result *result, tup
     
     int acc = 0;
     int add_acc = m;
-    int weight_cycles = config->array_h;
+    int weight_cycles = configs->array_h;
     for (int c = 1; c <= weight_cycles; c++) {
         if (acc < weights) {
             left_weights -= add_acc;
@@ -151,7 +152,7 @@ static void simulate_filling_weights_gemm_ws(config *config, result *result, tup
     assert(acc == weights);
 
     cout << "Weight Filling: ";
-    result->weight_fill_cycles += weight_cycles;
+    results->weight_fill_cycles += weight_cycles;
     cout << start_cycles << "~" << (cycles - 1) << "(" << weight_cycles << "cycles)\n";
     if (off_chip_memory_cycles) {
         for (auto& s: stalls) {
@@ -164,7 +165,7 @@ static void simulate_filling_weights_gemm_ws(config *config, result *result, tup
     return;
 }
 
-static void simulate_activation_gemm_ws(config *config, result *result, tuple<int, int, int> i, deque<int> *ifmap_vp, int *cycles_p, int *stall_cycles_p, int *ofmap_weights_p) {
+void SystolicWS::activate_ifmaps(SimulationConfigs *configs, SimulationResults *results, tuple<int, int, int> i, deque<int> *ifmap_vp, int *cycles_p, int *stall_cycles_p, int *ofmap_weights_p) {
     int m = get<0>(i);
     int n = get<1>(i);
     int k = get<2>(i);
@@ -172,9 +173,9 @@ static void simulate_activation_gemm_ws(config *config, result *result, tuple<in
     int left_weights = weights;
     int on_chip_weights = 0;
     int start_cycles = *cycles_p;
-    int ifmap_sram_size = config->ifmap_sram_size;
-    int ofmap_sram_size = config->ofmap_sram_size;
-    int off_chip_memory_cycles = config->off_chip_memory_cycles;
+    int ifmap_sram_size = configs->ifmap_sram_size;
+    int ofmap_sram_size = configs->ofmap_sram_size;
+    int off_chip_memory_cycles = configs->off_chip_memory_cycles;
     int ofmap_weights = *ofmap_weights_p;
     int stall_cycles = *stall_cycles_p;
     int cycles = *cycles_p;
@@ -196,7 +197,7 @@ static void simulate_activation_gemm_ws(config *config, result *result, tuple<in
 
     int acc = 0;
     int add_acc = 0;
-    int ifmap_cycles = config->array_h + (config->array_w - 1) + k;
+    int ifmap_cycles = configs->array_h + (configs->array_w - 1) + k;
     start_cycles = cycles;
     for (int c = 1; c <= ifmap_cycles; c++) {
         if (c <= n) {
@@ -238,7 +239,7 @@ static void simulate_activation_gemm_ws(config *config, result *result, tuple<in
     assert(ofmap_acc == m * k);
 
     cout << "Activations: ";
-    result->activation_cycles += ifmap_cycles;
+    results->activation_cycles += ifmap_cycles;
     cout << start_cycles << "~" << (cycles - 1) << "(" << ifmap_cycles << "cycles)\n";
     if (off_chip_memory_cycles) {
         for (auto& s: stalls) {
@@ -258,34 +259,34 @@ static void simulate_activation_gemm_ws(config *config, result *result, tuple<in
     return;
 }
 
-int compute_cycles_gemm_ws(config* config, result *result) {
+int32_t SystolicWS::compute_cycles(SimulationConfigs* configs, SimulationResults* results) {
     int cycles = 1;
     int stall_cycles = 0;
     int ofmap_weights = 0;
     int cnt = 1;
-    vector<tuple<int, int, int>> *computations = &result->computations; 
+    vector<tuple<int, int, int>> *computations = &results->computations; 
     deque<int> weight_v;
     deque<int> ifmap_v;
     
     /* Divide Workloads. */
-    divide_gemm_ws(config, computations);
+    SystolicWS::divide_weights(configs, computations);
 
     /* Pre-Filling to SRAM. Stalls are not calculated. */
-    simulate_prefill_gemm_ws(config, computations, &weight_v, &ifmap_v);
+    SystolicWS::prefill_weights(configs, computations, &weight_v, &ifmap_v);
 
     cout << '\n' << "============CYCLE-COUNT=============\n";
     for (auto& i: *computations) {
         cout << "------------COMPUTATION" << cnt++ << "------------" << '\n';
         /* Weights Filling Simulation. */
-        simulate_filling_weights_gemm_ws(config, result, i, &weight_v, &cycles, &stall_cycles);
+        SystolicWS::fill_weights(configs, results, i, &weight_v, &cycles, &stall_cycles);
 
         /* Activation(Ifmap, Ofmap) Simulation. */
-        simulate_activation_gemm_ws(config, result, i, &ifmap_v, &cycles, &stall_cycles, &ofmap_weights);
+        SystolicWS::activate_ifmaps(configs, results, i, &ifmap_v, &cycles, &stall_cycles, &ofmap_weights);
     }
-    result->total_cycles = cycles - 1;
-    result->stall_cycles = stall_cycles;
+    results->total_cycles = cycles - 1;
+    results->stall_cycles = stall_cycles;
 
-    print_results_gemm_ws(result);
+    SystolicWS::print_results(results);
     
     return cycles - 1;
 }

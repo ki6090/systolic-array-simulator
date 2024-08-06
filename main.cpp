@@ -4,9 +4,8 @@
 #include <string>
 #include <stdio.h>
 #include <cstddef>
-#include "include/config.h"
-#include "include/print.h"
-#include "include/ws.h"
+#include "Config.h"
+#include "SystolicWS.h"
 
 /* Mode */
 #define GEMM 1
@@ -14,65 +13,40 @@
 using namespace std;
 
 int main(int argc, char **argv) {
-    if (argc <= 2) {
-        cout << "Usage: > " << argv[0] << " [file_name].config " << "[MODE]" <<'\n';
-        cout << "MODE: [-gemm]\n";
+    if (argc <= 1) {
+        cout << "Usage: > " << argv[0] << " [file_name].config " <<'\n';
         return 0;
     }
-    else if (argc > 3) {
+    else if (argc > 2) {
         std::cout << "Too many arguments.\n";
         return 0;
     }
-    
-    config config;
-    result result;
-    result.activation_cycles = 0;
-    result.weight_fill_cycles = 0;
-    result.total_cycles = 0;
-    result.stall_cycles = 0;
-    result.computations.empty();
+    Config sim_configs = Config();
+    Result sim_results = Result();
+    SimulationConfigs configs = sim_configs.simulation_configs;
+    SimulationResults results = sim_results.simulation_results;
+    results.activation_cycles = 0;
+    results.weight_fill_cycles = 0;
+    results.total_cycles = 0;
+    results.stall_cycles = 0;
+    results.computations.empty();
 
-    int mode = 0;
-    int error = 0;
-    string token = argv[2];
-    if (!token.compare("-gemm")) {
-        mode = GEMM;
-    }
-
-    switch (mode)
-    {
-    case GEMM:
-    {
-        error = read_gemm_config(&config, argv[1]);
-        if (error == -1) return 0;
-        break;
-    }    
-    default:
-        cout << "Please set the mode.\n";
-        return 0;
-    }
-
-    error = read_arch_config(&config, argv[1]);
+    int8_t error = sim_configs.read_gemm(&configs, argv[1]);
+    error = sim_configs.read_arch(&configs, argv[1]);
     if (error == -1) return 0;
     
-    print_scale_sim_infos(&config);
+    sim_configs.print_sim_infos(&configs);
 
     cout << '\n' << "============COMPUTATIONS============\n";
-    switch (config.dataflow)
+    switch (configs.dataflow)
     {
     case WS:
     {
-        switch (mode)
-        {
-        case GEMM:
-            compute_cycles_gemm_ws(&config, &result);
-            compute_util_gemm_ws(&config, &result);
-            break;
-        default:
-            break;
-        }
+    SystolicWS systolic_ws = SystolicWS();
+    systolic_ws.compute_cycles(&configs, &results);
+    systolic_ws.compute_utils(&configs, &results);
+    break;
     }
-        break;
     case OS:
         break;
     case IS:
