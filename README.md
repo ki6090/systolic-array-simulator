@@ -43,7 +43,8 @@ NSize: 128
 KSize: 128
 [end]
 ```
-##Example Results 
+
+## Example Results 
 You can see the simulation result after running the prior commands. The cycle results is shown for each computation in the systolic array. 
 ```
 =========SYSTOLIC-ARRAY-SIM=========
