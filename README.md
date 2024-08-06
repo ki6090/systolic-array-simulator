@@ -26,7 +26,7 @@ This is the example configuration file to run the simulator. You have to close w
 SRAM size indicates the number of parameters not bytes. If your Ifmap matrix size is ```[128x128]```, ```IfmapSRAMSize``` should be ```16384```. 
 ```MSize``` also indicates the number of row of first matrix in ```[MxN] x [NxK]```.
 
-Also, you can set the stall cycles to access off-chip DRAM with ``ÒffChipMemoryCycles```.
+Also, you can set the stall cycles to access off-chip DRAM with ```OffChipMemoryCycles```.
 ```
 [architecture_presets]
 ArrayHeight: 16
