@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
         return 0;
     }
     else if (argc > 2) {
-        std::cout << "Too many arguments.\n";
+        printf("Too many arguments.\n");
         return 0;
     }
     Config sim_configs = Config();
@@ -37,7 +37,6 @@ int main(int argc, char **argv) {
     
     sim_configs.print_sim_infos(&configs);
 
-    cout << '\n' << "============COMPUTATIONS============\n";
     switch (configs.dataflow)
     {
     case WS:
@@ -54,7 +53,6 @@ int main(int argc, char **argv) {
     default:
         break;
     }
-    cout << "====================================\n";
     return 0;
 }
 
