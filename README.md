@@ -2,6 +2,8 @@
 This is a systolic array simulator to caculate the compuation cycle counts. 
 This code heavily references the following SCALE-SIM paper. However, this code is significantly different from the SCALE-SIM code. This code is written in C++ instead of Python which is used to simulate SCALE-SIM. 
 
+<img width="500" alt="image" src="https://github.com/user-attachments/assets/1971b7fb-7bc5-45cc-bab8-07a8c94dfb21">
+
 original paper url: https://arxiv.org/abs/1811.02883
 
 original github repo: https://github.com/ARM-software/SCALE-Sim
