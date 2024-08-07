@@ -14,16 +14,16 @@ original github repo: https://github.com/ARM-software/SCALE-Sim
 To run this simulator, clone it to your machine. Linux is highly recommended for operating system. 
 
 ```
-git clone https://github.com/ki6090/systolic-array-simulator.git
+$ git clone https://github.com/ki6090/systolic-array-simulator.git
 ```
 ### Compile and Run
 To run the real simulator, you have to complie with corresponding command in root repository folder. 
 ```
-make sim
+$ make sim
 ```
 
 ```
-./sim configs/test1.config
+$ ./sim configs/test1.config
 ```
 ### Write a Config File
 This is the example configuration file to run the simulator. You have to close with the ```[end]``` bracket. This simulator can only simulate GEMM (general matrix multiplication) with Weight Stationary(WS). Another calcualtion method will be added in future. 
